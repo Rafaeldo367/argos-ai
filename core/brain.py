@@ -4,44 +4,40 @@ from actions.system import get_system_status, handle_action
 
 class ArgosBrain:
     def __init__(self):
-        self.model = "phi"
+        # Asegúrate de que el nombre coincida con 'ollama list'
+        self.model = "qwen3.5:0.8b" #El modelo que hayas instalado
 
     def think(self, message: str) -> str:
-        # 1. Acción directa (psutil, etc)
+        # 1. ¿Es una orden directa?
         action_result = handle_action(message)
-        if action_result:
-            return action_result
+        if action_result: return action_result
 
-        # 2. Obtener la realidad del servidor
-        status = get_system_status()
+        # 2. Contexto de servidor
+        s = get_system_status()
         context = (
-            f"DATOS DEL SISTEMA: CPU {status['cpu']}%, "
-            f"RAM {status['ram']}%, DISCO {status['disk']}%.\n"
-            f"PROCESOS: {status['procs']}."
+            f"SISTEMA: CPU {s['cpu']}% | RAM {s['ram']}% | Temp {s['temp']} | "
+            f"Docker Activos: {s['docker']} | Uptime: {s['up']}"
         )
 
         try:
-            # 3. Usar la API de Chat (Más robusta)
+            # 3. Chat optimizado para velocidad
             response = ollama.chat(
                 model=self.model,
                 messages=[
-                    {'role': 'system', 'content': f"{ARGOS_IDENTITY}\n\n{context}"},
+                    {'role': 'system', 'content': f"{ARGOS_IDENTITY}\nContexto: {context}"},
                     {'role': 'user', 'content': message},
                 ],
                 options={
-                    'temperature': 0.1,  # Máxima precisión, mínima "locura"
-                    'stop': ["User:", "Usuario:", "\n\n", "AI:", "Argos:"], # MORDaza
-                    'num_predict': 80    # Que sea breve y directo
+                    'temperature': 0.1,    # Casi sin aleatoriedad (Evita sobrepensar)
+                    'num_predict': 60,     # Respuestas cortas = Respuestas rápidas
+                    'top_p': 0.9,          # Filtra palabras innecesarias
+                    'stop': ["Usuario:", "\n\n", "User:"]
                 }
             )
 
-            # Limpiamos cualquier residuo que Phi haya intentado colar
-            full_response = response['message']['content'].strip()
-            
-            # Si se pone a traducir entre paréntesis, cortamos eso
-            clean_response = full_response.split('(')[0].strip()
-            
-            return clean_response if clean_response else "Sistema operativo. Sin novedades."
+            res = response['message']['content'].strip()
+            # Limpiamos si intenta repetir el prompt
+            return res.split("Usuario:")[0].split("Argos:")[0].strip()
 
         except Exception as e:
-            return f"Fallo de cognición: {str(e)}"
+            return f"Enlace neuronal lento. Error: {str(e)}"
