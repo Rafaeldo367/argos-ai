@@ -20,7 +20,7 @@ It is a system-aware AI entity designed to understand intent and interact with i
 ## ⚙️ Setup
 
 ```bash
-git clone https://github.com/your_user/argos-ai.git
+git clone https://github.com/Rafaeldo367/argos-ai.git
 cd argos-ai
 
 python3 -m venv venv
