@@ -30,8 +30,8 @@ class ArgosBrain:
                     {'role': 'user', 'content': message},
                 ],
                 options={
-                    'temperature': 0.7,    # <--- Sube la creatividad
-                    'num_predict': 150,    # <--- Permite respuestas más largas
+                    'temperature': 0.8,    # <--- Sube la creatividad
+                    'num_predict': 100,    # <--- Permite respuestas más largas
                     'top_p': 0.9,
                     'stop': ["Usuario:", "User:"]
                 }
