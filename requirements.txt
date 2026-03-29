@@ -1,4 +1,4 @@
 python-telegram-bot
 python-dotenv
-google-generativeai
+google-genai
 psutil
