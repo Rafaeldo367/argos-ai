@@ -1,25 +1,25 @@
 import os
-import google.generativeai as genai
 from dotenv import load_dotenv
+from google import genai
 
 from core.identity import ARGOS_IDENTITY
 from actions.system import handle_action
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 class ArgosBrain:
     def __init__(self):
-        self.model = genai.GenerativeModel("gemini-1.5-flash")
+        pass
 
     def think(self, message: str) -> str:
-        # primero intenta ejecutar acción
+        # 1. intentar acción
         action_result = handle_action(message)
-
         if action_result:
             return action_result
 
+        # 2. pensamiento
         prompt = f"""
 {ARGOS_IDENTITY}
 
@@ -29,5 +29,9 @@ User input:
 Argos response:
 """
 
-        response = self.model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
+        )
+
         return response.text
