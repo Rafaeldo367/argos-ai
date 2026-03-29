@@ -30,7 +30,7 @@ Argos response:
 """
 
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.0-flash-lite-preview-02-05",
             contents=prompt
         )
 
