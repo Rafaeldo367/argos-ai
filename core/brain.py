@@ -1,52 +1,47 @@
 import ollama
-import psutil # Para que Argos tenga "sentidos"
 from core.identity import ARGOS_IDENTITY
-from actions.system import handle_action
+from actions.system import get_system_status, handle_action
 
 class ArgosBrain:
     def __init__(self):
         self.model = "phi"
 
-    def get_system_context(self):
-        """Recolecta datos reales del servidor para darle contexto a Phi."""
-        cpu = psutil.cpu_percent()
-        ram = psutil.virtual_memory().percent
-        disk = psutil.disk_usage('/').percent
-        return f"Contexto del Sistema: CPU: {cpu}%, RAM: {ram}%, Disco: {disk}%."
-
     def think(self, message: str) -> str:
-        # 🔹 1. Intentar acción directa (Prioridad alta)
+        # 1. Acción directa (psutil, etc)
         action_result = handle_action(message)
         if action_result:
             return action_result
 
-        # 🔹 2. Obtener la realidad del servidor
-        context = self.get_system_context()
-
-        # 🔹 3. Construir el prompt estructurado
-        # Usamos un formato que Phi entiende mejor para no divagar
-        prompt = f"""{ARGOS_IDENTITY}
-
-{context}
-
-Usuario: {message}
-Argos:"""
+        # 2. Obtener la realidad del servidor
+        status = get_system_status()
+        context = (
+            f"DATOS DEL SISTEMA: CPU {status['cpu']}%, "
+            f"RAM {status['ram']}%, DISCO {status['disk']}%.\n"
+            f"PROCESOS: {status['procs']}."
+        )
 
         try:
-            # 🔹 4. Llamada optimizada a Ollama
-            response = ollama.generate(
+            # 3. Usar la API de Chat (Más robusta)
+            response = ollama.chat(
                 model=self.model,
-                prompt=prompt,
+                messages=[
+                    {'role': 'system', 'content': f"{ARGOS_IDENTITY}\n\n{context}"},
+                    {'role': 'user', 'content': message},
+                ],
                 options={
-                    'temperature': 0.2,    # Menos creatividad, más precisión
-                    'num_predict': 100,    # Que no escriba testamentos
-                    'stop': ["Usuario:", "\n\n"] # Evita que invente diálogos
+                    'temperature': 0.1,  # Máxima precisión, mínima "locura"
+                    'stop': ["User:", "Usuario:", "\n\n", "AI:", "Argos:"], # MORDaza
+                    'num_predict': 80    # Que sea breve y directo
                 }
             )
 
-            # Limpiamos la respuesta de posibles restos
-            text = response['response'].strip()
-            return text if text else "Sistema en espera. Sin comentarios adicionales."
+            # Limpiamos cualquier residuo que Phi haya intentado colar
+            full_response = response['message']['content'].strip()
+            
+            # Si se pone a traducir entre paréntesis, cortamos eso
+            clean_response = full_response.split('(')[0].strip()
+            
+            return clean_response if clean_response else "Sistema operativo. Sin novedades."
 
         except Exception as e:
-            return f"Error de cognición local: {str(e)}. Funciones básicas activas."
+            return f"Fallo de cognición: {str(e)}"
