@@ -4,48 +4,45 @@ from actions.system import get_system_status, handle_action
 
 class ArgosBrain:
     def __init__(self):
-        # Asegúrate de que el nombre sea exacto al de 'ollama list'
-        self.model = "qwen3.5:0.8b" # O el que tengas descargado
+        # Asegúrate de que este nombre sea el que te sale en 'ollama list'
+        self.model = "qwen3.5:0.8b" 
 
     def think(self, message: str) -> str:
-        # 1. ¿Es una orden directa? (Acciones de sistema)
+        # 1. Acciones rápidas (CPU, RAM, Docker)
         action_result = handle_action(message)
         if action_result: 
             return action_result
 
-        # 2. Contexto de servidor
+        # 2. Contexto de servidor (Los 'sentidos' de Argos)
         s = get_system_status()
         context = (
-            f"SISTEMA: CPU {s['cpu']}% | RAM {s['ram']}% | Temp {s['temp']} | "
-            f"Docker: {s['docker']} | Uptime: {s['up']}"
+            f"ESTADO DEL SISTEMA:\n- CPU: {s['cpu']}%\n- RAM: {s['ram']}%\n"
+            f"- Temp: {s['temp']}\n- Docker: {s['docker']} contenedores\n"
+            f"- Uptime: {s['up']}"
         )
 
         try:
-            # 3. Chat optimizado
+            # 3. Configuración para mayor creatividad
             response = ollama.chat(
                 model=self.model,
                 messages=[
-                    {'role': 'system', 'content': f"{ARGOS_IDENTITY}\nContexto: {context}"},
+                    {'role': 'system', 'content': f"{ARGOS_IDENTITY}\n\n{context}"},
                     {'role': 'user', 'content': message},
                 ],
                 options={
-                    'temperature': 0.1,    
-                    'num_predict': 80,     
-                    'top_p': 0.9,          
-                    'stop': ["Usuario:", "\n\n", "User:", "Argos:"]
+                    'temperature': 0.7,    # <--- Sube la creatividad
+                    'num_predict': 150,    # <--- Permite respuestas más largas
+                    'top_p': 0.9,
+                    'stop': ["Usuario:", "User:"]
                 }
             )
 
             res = response['message']['content'].strip()
             
-            # Limpieza de basura y repeticiones
-            res = res.split("Usuario:")[0].split("Argos:")[0].strip()
+            # Limpieza básica
+            res = res.split("Usuario:")[0].strip()
 
-            # RED DE SEGURIDAD: Evita el error "Message text is empty"
-            if not res:
-                return "Sistema nominal. Sin novedades que reportar."
-            
-            return res
+            return res if res else "Estoy procesando datos, Rafael. El flujo es estable."
 
         except Exception as e:
-            return f"Fallo de enlace neuronal. Error: {str(e)}"
+            return f"Interferencia en el enlace: {str(e)}"
