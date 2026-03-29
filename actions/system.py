@@ -1,47 +1,45 @@
 import psutil
+import subprocess
+import os
 
 def get_system_status():
-    """
-    Esta función le da a Argos (Phi) la 'visión' del servidor.
-    Extrae todos los datos de una vez.
-    """
+    """Reporte profundo para el contexto de Qwen."""
+    # Métricas base
     cpu = psutil.cpu_percent(interval=0.1)
     ram = psutil.virtual_memory().percent
     disk = psutil.disk_usage('/').percent
     
-    # Buscamos procesos que estén consumiendo más del 5%
-    heavy_procs = []
-    for p in psutil.process_iter(['name', 'cpu_percent']):
-        try:
-            if p.info['cpu_percent'] > 5.0:
-                heavy_procs.append(f"{p.info['name']} ({p.info['cpu_percent']}%)")
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            continue
-            
+    # Temperatura (Si el hardware lo permite)
+    temp = "N/A"
+    try:
+        temps = psutil.sensors_temperatures()
+        if 'coretemp' in temps:
+            temp = f"{temps['coretemp'][0].current}°C"
+    except: pass
+
+    # Estado de Docker (CasaOS)
+    try:
+        docker_count = subprocess.check_output(["docker", "ps", "-q"]).decode().count("\n")
+    except: docker_count = "Error"
+
     return {
-        "cpu": cpu,
-        "ram": ram,
-        "disk": disk,
-        "procs": ", ".join(heavy_procs[:3]) if heavy_procs else "Estable"
+        "cpu": cpu, "ram": ram, "disk": disk, 
+        "temp": temp, "docker": docker_count,
+        "up": subprocess.check_output(["uptime", "-p"]).decode().strip()
     }
 
 def handle_action(message: str):
-    """
-    Esta función es la 'acción rápida'. 
-    Si el usuario pide algo exacto, respondemos sin pasar por la IA.
-    """
-    message = message.lower()
+    """Acciones rápidas sin pasar por la IA."""
+    msg = message.lower()
+    
+    if "docker" in msg or "contenedores" in msg:
+        try:
+            res = subprocess.check_output(["docker", "ps", "--format", "{{.Names}}: {{.Status}}"]).decode()
+            return f"Estado Docker:\n{res}"
+        except: return "No pude acceder a Docker."
 
-    if "cpu" in message:
-        cpu = psutil.cpu_percent(interval=1)
-        return f"Uso actual de CPU: {cpu}%."
-
-    if "ram" in message or "memoria" in message:
-        ram = psutil.virtual_memory().percent
-        return f"Uso de Memoria RAM: {ram}%."
-
-    if "disco" in message or "disk" in message:
-        disk = psutil.disk_usage('/').percent
-        return f"Uso de Disco: {disk}%."
+    if "red" in msg or "ip" in msg:
+        ip = subprocess.check_output(["hostname", "-I"]).decode().split()[0]
+        return f"IP Local: {ip}"
 
     return None
