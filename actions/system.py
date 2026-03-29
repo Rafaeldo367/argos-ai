@@ -3,24 +3,23 @@ import subprocess
 import os
 
 def get_system_status():
-    """Reporte profundo para el contexto de Qwen."""
-    # Métricas base
+    """Reporte de sensores para el cerebro de Argos."""
     cpu = psutil.cpu_percent(interval=0.1)
     ram = psutil.virtual_memory().percent
     disk = psutil.disk_usage('/').percent
     
-    # Temperatura (Si el hardware lo permite)
+    # Temperatura
     temp = "N/A"
     try:
-        temps = psutil.sensors_temperatures()
-        if 'coretemp' in temps:
-            temp = f"{temps['coretemp'][0].current}°C"
+        t = psutil.sensors_temperatures()
+        if 'coretemp' in t: temp = f"{t['coretemp'][0].current}°C"
+        elif 'cpu_thermal' in t: temp = f"{t['cpu_thermal'][0].current}°C"
     except: pass
 
-    # Estado de Docker (CasaOS)
+    # Docker
     try:
         docker_count = subprocess.check_output(["docker", "ps", "-q"]).decode().count("\n")
-    except: docker_count = "Error"
+    except: docker_count = "0 (Error de acceso)"
 
     return {
         "cpu": cpu, "ram": ram, "disk": disk, 
@@ -29,17 +28,27 @@ def get_system_status():
     }
 
 def handle_action(message: str):
-    """Acciones rápidas sin pasar por la IA."""
+    """Acciones de control directo."""
     msg = message.lower()
     
-    if "docker" in msg or "contenedores" in msg:
-        try:
-            res = subprocess.check_output(["docker", "ps", "--format", "{{.Names}}: {{.Status}}"]).decode()
-            return f"Estado Docker:\n{res}"
-        except: return "No pude acceder a Docker."
+    # 1. Ver espacio en disco detallado
+    if "espacio" in msg or "disco" in msg:
+        res = subprocess.check_output(["df", "-h", "/"]).decode().split('\n')[1]
+        parts = res.split()
+        return f"Almacenamiento: {parts[2]} usado de {parts[1]} ({parts[4]})."
 
-    if "red" in msg or "ip" in msg:
-        ip = subprocess.check_output(["hostname", "-I"]).decode().split()[0]
-        return f"IP Local: {ip}"
+    # 2. Ver contenedores específicos
+    if "docker" in msg or "servicios" in msg:
+        try:
+            res = subprocess.check_output(["docker", "ps", "--format", "{{.Names}}"]).decode()
+            return f"Servicios activos:\n{res}" if res else "No hay contenedores corriendo."
+        except: return "Error al consultar Docker."
+
+    # 3. IP y Red
+    if "ip" in msg or "red" in msg:
+        try:
+            ip = subprocess.check_output(["hostname", "-I"]).decode().split()[0]
+            return f"Identidad de red: {ip}"
+        except: return "No se pudo obtener la IP."
 
     return None
