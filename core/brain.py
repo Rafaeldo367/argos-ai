@@ -4,45 +4,44 @@ from actions.system import get_system_status, handle_action
 
 class ArgosBrain:
     def __init__(self):
-        # Asegúrate de que este nombre sea el que te sale en 'ollama list'
+        # IMPORTANTE: Cambia esto al nombre exacto de tu 'ollama list'
+        # Si descargaste qwen2.5:0.5b o llama3.2:1b, ponlo aquí.
         self.model = "qwen3.5:0.8b" 
 
     def think(self, message: str) -> str:
-        # 1. Acciones rápidas (CPU, RAM, Docker)
+        # 1. Acciones rápidas (Si escribes 'CPU', esto responde directo)
         action_result = handle_action(message)
         if action_result: 
             return action_result
 
-        # 2. Contexto de servidor (Los 'sentidos' de Argos)
+        # 2. Contexto simplificado
         s = get_system_status()
-        context = (
-            f"ESTADO DEL SISTEMA:\n- CPU: {s['cpu']}%\n- RAM: {s['ram']}%\n"
-            f"- Temp: {s['temp']}\n- Docker: {s['docker']} contenedores\n"
-            f"- Uptime: {s['up']}"
-        )
+        context = f"SISTEMA: CPU {s['cpu']}% | RAM {s['ram']}% | Temp {s['temp']}."
 
         try:
-            # 3. Configuración para mayor creatividad
+            # 3. Petición limpia (Sin demasiadas restricciones)
             response = ollama.chat(
                 model=self.model,
                 messages=[
-                    {'role': 'system', 'content': f"{ARGOS_IDENTITY}\n\n{context}"},
+                    {'role': 'system', 'content': f"{ARGOS_IDENTITY}\nStatus: {context}"},
                     {'role': 'user', 'content': message},
                 ],
                 options={
-                    'temperature': 0.8,    # <--- Sube la creatividad
-                    'num_predict': 100,    # <--- Permite respuestas más largas
+                    'temperature': 0.8, # Más variedad de palabras
                     'top_p': 0.9,
-                    'stop': ["Usuario:", "User:"]
+                    'num_predict': 150, # Permitir que se explaye
+                    # Quitamos el stop de salto de línea por si el modelo quiere usar párrafos
+                    'stop': ["Usuario:", "User:"] 
                 }
             )
 
             res = response['message']['content'].strip()
-            
-            # Limpieza básica
-            res = res.split("Usuario:")[0].strip()
 
-            return res if res else "Estoy procesando datos, Rafael. El flujo es estable."
+            # Si el modelo sigue mudo, forzamos una respuesta basada en datos
+            if not res:
+                return f"Rafael, el sistema está al {s['cpu']}% de CPU, pero mi núcleo de lenguaje está procesando. ¿Puedes repetir la orden?"
+
+            return res
 
         except Exception as e:
-            return f"Interferencia en el enlace: {str(e)}"
+            return f"Error de enlace: {str(e)}"
