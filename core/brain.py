@@ -5,7 +5,7 @@ from actions.system import get_system_status, handle_action
 class ArgosBrain:
     def __init__(self):
         # Asegúrate de que el nombre sea exacto al de 'ollama list'
-        self.model = "qwen2.5:0.5b" # O el que tengas descargado
+        self.model = "qwen3.5:0.8b" # O el que tengas descargado
 
     def think(self, message: str) -> str:
         # 1. ¿Es una orden directa? (Acciones de sistema)
