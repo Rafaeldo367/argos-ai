@@ -5,7 +5,7 @@ from actions.system import get_system_status, handle_action
 class ArgosBrain:
     def __init__(self):
         # Asegúrate de que este nombre sea EXACTO al de 'ollama list'
-        self.model = "qwen3.5:0.8b" 
+        self.model = "phi" 
 
     def think(self, message: str) -> str:
         # 1. Comandos directos (CPU, RAM, etc)
